@@ -140,9 +140,14 @@ chrome.storage.onChanged.addListener((changes, area) => {
 // Action directe sur clic sur l'icône
 chrome.action.onClicked.addListener(() => moveUp())
 
-// Raccourci clavier
-chrome.commands.onCommand.addListener((cmd) => {
-  if (cmd === "move-up") moveUp()
+/**
+ * Raccourci clavier : activable/désactivable via option "shortcut"
+ */
+chrome.commands.onCommand.addListener(async (cmd) => {
+  if (cmd === "move-up") {
+    const { shortcut = true } = await chrome.storage.local.get("shortcut")
+    if (shortcut) moveUp()
+  }
 })
 
 /**

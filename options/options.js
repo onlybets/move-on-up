@@ -6,12 +6,19 @@ document.addEventListener("DOMContentLoaded", async () => {
   const modeInputs = form.elements["mode"]
   const toastCheckbox = document.getElementById("toast")
   const contextMenuCheckbox = document.getElementById("contextMenu")
+  const shortcutCheckbox = document.getElementById("shortcut")
 
   // Charger les valeurs actuelles
-  const { mode = "standard", toast = false, contextMenu = false } = await chrome.storage.local.get([
+  const {
+    mode = "standard",
+    toast = false,
+    contextMenu = false,
+    shortcut = true
+  } = await chrome.storage.local.get([
     "mode",
     "toast",
-    "contextMenu"
+    "contextMenu",
+    "shortcut"
   ])
 
   // Appliquer à l'UI
@@ -20,6 +27,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
   toastCheckbox.checked = !!toast
   contextMenuCheckbox.checked = !!contextMenu
+  shortcutCheckbox.checked = !!shortcut
 
   // Gestion des changements
   for (const input of modeInputs) {
@@ -34,5 +42,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   })
   contextMenuCheckbox.addEventListener("change", () => {
     chrome.storage.local.set({ contextMenu: contextMenuCheckbox.checked })
+  })
+  shortcutCheckbox.addEventListener("change", () => {
+    chrome.storage.local.set({ shortcut: shortcutCheckbox.checked })
   })
 })
