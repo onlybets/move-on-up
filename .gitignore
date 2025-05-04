@@ -5,6 +5,9 @@ node_modules/
 dist/
 build/
 
+# Zip files
+*.zip
+
 # System files
 .DS_Store
 Thumbs.db

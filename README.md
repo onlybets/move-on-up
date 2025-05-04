@@ -39,6 +39,12 @@ A modern, smart Chrome extension to "move up" one level in the current tab's URL
 
 ---
 
+## 📷 Screenshots
+
+![](assets/capture.jpg)
+
+---
+
 ## 🛠️ Technical Overview
 
 - **Manifest V3**: Secure, modern Chrome extension architecture.
@@ -149,9 +155,3 @@ MIT
 
 Created by [onlybets](https://github.com/onlybets).  
 Design and logic inspired by user needs for fast, smart URL navigation.
-
----
-
-## 📷 Screenshots
-
-
