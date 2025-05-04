@@ -31,7 +31,7 @@ A modern, smart Chrome extension to "move up" one level in the current tab's URL
   - Optional Chrome notification after redirection, showing the new URL.
 
 - **Keyboard Shortcut**  
-  - Default: `Ctrl+Shift+ArrowUp` (Windows/Linux), `Cmd+Shift+ArrowUp` (Mac).
+  - Default: `Ctrl+Shift+U` (Windows/Linux), `Cmd+Shift+U` (Mac).
   - Shortcut is customizable in Chrome extension settings.
 
 - **No Popup**  

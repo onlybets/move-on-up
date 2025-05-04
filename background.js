@@ -80,30 +80,57 @@ async function moveUp(overrideMode) {
   }
 }
 
-// Gestion dynamique du menu contextuel
+/**
+ * Met à jour les menus contextuels :
+ * - Sur la page : activable/désactivable via options (enabled)
+ * - Sur l'icône : toujours visible, non désactivable
+ */
 async function updateContextMenus(enabled) {
   await chrome.contextMenus.removeAll()
+
+  // Menu contextuel sur la page (activable/désactivable)
   if (enabled) {
     chrome.contextMenus.create({
-      id: "move-up",
-      title: "Move up one level",
-      contexts: ["all"]
+      id: "move-up-page",
+      title: "Move up",
+      contexts: ["page"]
     })
     chrome.contextMenus.create({
-      id: "go-root",
+      id: "go-root-page",
       title: "Go to root",
-      contexts: ["all"]
+      contexts: ["page"]
     })
   }
+
+  // Menu contextuel sur l'icône (toujours visible)
+  chrome.contextMenus.create({
+    id: "move-up-action",
+    title: "Move up",
+    contexts: ["action"]
+  })
+  chrome.contextMenus.create({
+    id: "go-root-action",
+    title: "Go to root",
+    contexts: ["action"]
+  })
 }
 
-// Initialisation à l'installation
+/**
+ * Initialisation à l'installation :
+ * - Désactive notification et menu contextuel page par défaut
+ * - Met à jour les menus contextuels
+ */
 chrome.runtime.onInstalled.addListener(async () => {
-  const { contextMenu } = await chrome.storage.local.get("contextMenu")
-  await updateContextMenus(contextMenu !== false)
+  await chrome.storage.local.set({
+    toast: false,
+    contextMenu: false
+  })
+  await updateContextMenus(false)
 })
 
-// Synchronisation dynamique du menu contextuel avec les options
+/**
+ * Synchronisation dynamique du menu contextuel page avec les options
+ */
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === "local" && changes["contextMenu"]) {
     updateContextMenus(changes["contextMenu"].newValue)
@@ -118,8 +145,19 @@ chrome.commands.onCommand.addListener((cmd) => {
   if (cmd === "move-up") moveUp()
 })
 
-// Menu contextuel
+/**
+ * Gestion des clics sur les menus contextuels
+ */
 chrome.contextMenus.onClicked.addListener((info) => {
-  if (info.menuItemId === "move-up") moveUp()
-  else if (info.menuItemId === "go-root") moveUp("root")
+  if (
+    info.menuItemId === "move-up-page" ||
+    info.menuItemId === "move-up-action"
+  ) {
+    moveUp()
+  } else if (
+    info.menuItemId === "go-root-page" ||
+    info.menuItemId === "go-root-action"
+  ) {
+    moveUp("root")
+  }
 })

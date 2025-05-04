@@ -37,7 +37,7 @@
         "default": "Ctrl+Shift+U",
         "mac": "Command+Shift+U"
       },
-      "description": "Move up one level in the URL"
+      "description": "Move up in the URL path"
     }
   },
   "content_scripts": [

@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const contextMenuCheckbox = document.getElementById("contextMenu")
 
   // Charger les valeurs actuelles
-  const { mode = "standard", toast = true, contextMenu = true } = await chrome.storage.local.get([
+  const { mode = "standard", toast = false, contextMenu = false } = await chrome.storage.local.get([
     "mode",
     "toast",
     "contextMenu"
