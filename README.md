@@ -25,6 +25,7 @@ A modern, smart Chrome extension to "move up" one level in the current tab's URL
   - Right-click for quick actions:
     - "Move up one level" (current mode)
     - "Go to root"
+    - **Quick‑jump list**: every intermediate URL from the deepest path to the root domain (sub‑domains included)
   - Menu visibility is user-configurable.
 
 - **Notifications**  

@@ -1,168 +1,372 @@
-// Move On Up - background.js
-// Toute la logique métier de l'extension : navigation intelligente, notifications, context menu, raccourci clavier, gestion des options
+// =============================================================================
+// Move On Up – background.js
+// -----------------------------------------------------------------------------
+//   Smart "move up" navigation with 4 selectable modes and a rich context‑menu.
+//   Both the action‑menu (extension icon) and the page context‑menu show
+//   IDENTICAL entries – except that, **in the action‑menu only**, the dynamic
+//   list of candidate URLs is now grouped under a "Navigate up" sub‑menu:
+//       • Move up – standard
+//       • Go to root
+//       • Move up – remove last param
+//       • Move up – keep params/hash
+//       — separator —
+//       • Navigate up ▸  (submenu, ACTION menu only)
+//           • url‑1
+//           • url‑2 …  (deepest → root, incl. sub‑domains)
+//
+//   Each entry triggers the corresponding behaviour ONCE, without changing the
+//   user’s default mode (stored in chrome.storage.local → "mode").
+//
+//   Default mode on fresh install = "standard".
+// =============================================================================
 
-// Modes possibles
-const MODES = ["standard", "root", "param", "slash-keep"]
+/******************************  Constants  ***********************************/
 
-// Fonction principale : effectue l'action de "remonter" dans l'URL selon le mode choisi
-async function moveUp(overrideMode) {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
-  if (!tab?.id || !tab.url) return
+/** Valid navigation modes recognised by the algorithm */
+const NAV_MODES = [
+  "standard",    // default: clear search/hash → up one path → drop sub‑domains
+  "root",        // jump to "/" then drop sub‑domains progressively
+  "param",       // remove one query param (then hash) before behaving like standard
+  "slash-keep"   // keep search/hash, up one path, then drop sub‑domains
+];
 
-  // Lire le mode depuis le storage (ou utiliser overrideMode si fourni)
-  let mode = overrideMode
-  if (!mode) {
-    const stored = await chrome.storage.local.get("mode")
-    mode = stored.mode || "standard"
+/** Map <context‑menu‑item‑id, target‑URL> for the dynamic jump list */
+const menuUrlMap = new Map();
+
+/******************************  Helpers  *************************************/
+
+/** Remove redundant trailing slashes for consistent comparisons */
+function stripTrailing (path) {
+  return path.replace(/\/+$/, "");
+}
+
+/** Remove one left‑most sub‑domain. Returns true if something was removed. */
+function removeOneSubdomain (urlObj) {
+  const parts = urlObj.hostname.split(".");
+  if (parts.length > 2) {
+      parts.shift();
+      urlObj.hostname = parts.join(".");
+      return true;
+  }
+  return false;
+}
+
+/*************************  Core navigation logic  ****************************/
+
+/**
+* "Standard" next‑higher URL
+*   1. Clear search & hash (if present)
+*   2. Pop last path segment (while > 1 segment)
+*   3. Remove one sub‑domain at a time
+* Returns null if already at the top‑most URL.
+*/
+function computeNextStandard (currentUrl) {
+  const u = new URL(currentUrl);
+
+  // 1. Clear query parameters & hash fragment
+  if (u.search && u.search.length > 1) {
+      u.search = "";
+      u.hash   = "";
+  } else if (u.hash) {
+      u.hash = "";
   }
 
-  const u = new URL(tab.url)
+  // 2. Pop one path segment (if possible)
+  const segments = stripTrailing(u.pathname).split("/");
+  if (segments.length > 1) {
+      segments.pop();
+      u.pathname = segments.join("/") || "/";
+      return u.toString();
+  }
+
+  // 3. Sub‑domain removal
+  if (removeOneSubdomain(u)) {
+      return u.toString();
+  }
+
+  return null;    // No higher location possible
+}
+
+/** Build the full chain of candidate URLs from deepest → root (excluding current) */
+function buildCandidateList (currentUrl) {
+  const list  = [];
+  let   next  = computeNextStandard(currentUrl);
+  let   guard = 0;          // safety against infinite loops
+
+  while (next && guard++ < 50) {
+      list.push(next);
+      next = computeNextStandard(next);
+  }
+  return list;
+}
+
+/**
+* Execute *one single* upward navigation step according to the selected mode.
+* The logic aligns variants (param / slash‑keep) with the standard algorithm
+* once their specific behaviour is exhausted.
+*/
+function applyModeOnce (currentUrl, mode) {
+  const u = new URL(currentUrl);
 
   switch (mode) {
-    case "standard":
-      // Supprime tous les params et hash, puis enlève le dernier segment du chemin
-      u.search = ""
-      u.hash = ""
-      {
-        const segments = u.pathname.replace(/\/+$/, "").split("/")
-        if (segments.length > 1) segments.pop()
-        u.pathname = segments.join("/") || "/"
+      //------------------------------------------------------------------
+      // ROOT MODE – go to "/" immediately, then start deleting sub‑domains
+      //------------------------------------------------------------------
+      case "root": {
+          // Always clear search & hash first
+          u.search = "";
+          u.hash   = "";
+
+          if (stripTrailing(u.pathname) !== "") {
+              // Still in a sub‑path → just reset to "/"
+              u.pathname = "/";
+              return u.toString();
+          }
+
+          // Already at "/" → remove one sub‑domain if possible
+          if (removeOneSubdomain(u)) {
+              return u.toString();
+          }
+          return currentUrl; // Nothing left to trim
       }
-      break
-    case "slash-keep":
-      // Enlève juste le dernier segment du chemin, garde params et hash
-      {
-        const segments = u.pathname.replace(/\/+$/, "").split("/")
-        if (segments.length > 1) segments.pop()
-        u.pathname = segments.join("/") || "/"
+
+      //------------------------------------------------------------------
+      // PARAM MODE – remove one query parameter, then hash, then behave standard
+      //------------------------------------------------------------------
+      case "param": {
+          if (u.search && u.search.length > 1) {
+              const params = new URLSearchParams(u.search);
+              const keys   = Array.from(params.keys());
+              params.delete(keys[keys.length - 1]);
+              u.search = params.toString() ? `?${params}` : "";
+              return u.toString();
+          }
+
+          if (u.hash) {
+              u.hash = "";
+              return u.toString();
+          }
+
+          // Fall back to standard behaviour
+          return computeNextStandard(currentUrl) || currentUrl;
       }
-      break
-    case "root":
-      u.pathname = "/"
-      u.search = ""
-      u.hash = ""
-      break
-    case "param":
-      // Supprime un paramètre d'URL à la fois (de droite à gauche), puis hash, puis dernier segment du chemin
-      if (u.search && u.search.length > 1) {
-        const params = new URLSearchParams(u.search)
-        const keys = Array.from(params.keys())
-        if (keys.length > 0) {
-          params.delete(keys[keys.length - 1])
-          u.search = params.toString() ? `?${params.toString()}` : ""
-        } else {
-          u.search = ""
-        }
-      } else if (u.hash) {
-        u.hash = ""
-      } else {
-        const segments = u.pathname.replace(/\/+$/, "").split("/")
-        if (segments.length > 1) segments.pop()
-        u.pathname = segments.join("/") || "/"
+
+      //------------------------------------------------------------------
+      // SLASH‑KEEP MODE – keep search/hash, pop one path, then remove sub‑domain
+      //------------------------------------------------------------------
+      case "slash-keep": {
+          const segments = stripTrailing(u.pathname).split("/");
+
+          if (segments.length > 1) {
+              segments.pop();
+              u.pathname = segments.join("/") || "/";
+              return u.toString();
+          }
+
+          // Path already at "/" → attempt sub‑domain removal (retaining search/hash)
+          if (removeOneSubdomain(u)) {
+              return u.toString();
+          }
+          return currentUrl;
       }
-      break
-    default:
-      break
+
+      //------------------------------------------------------------------
+      // STANDARD MODE (default)
+      //------------------------------------------------------------------
+      case "standard":
+      default:
+          return computeNextStandard(currentUrl) || currentUrl;
+  }
+}
+
+/******************************  Move action  ***************************/
+
+/** Perform a one‑shot navigation. If modeOverride is undefined, use stored mode. */
+async function performMoveUp (modeOverride) {
+  const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!activeTab?.id || !activeTab.url) return;
+
+  // Determine which mode to apply
+  let mode = modeOverride;
+  if (!mode) {
+      const { mode: storedMode = "standard" } = await chrome.storage.local.get("mode");
+      mode = NAV_MODES.includes(storedMode) ? storedMode : "standard";
   }
 
-  const newUrl = u.toString()
-  await chrome.tabs.update(tab.id, { url: newUrl })
+  const targetUrl = applyModeOnce(activeTab.url, mode);
+  if (!targetUrl || targetUrl === activeTab.url) return; // No change
 
-  // Notification si activée
-  const { toast } = await chrome.storage.local.get("toast")
+  await chrome.tabs.update(activeTab.id, { url: targetUrl });
+
+  const { toast = false } = await chrome.storage.local.get("toast");
   if (toast) {
-    chrome.notifications.create({
-      type: "basic",
-      iconUrl: "assets/icon.png",
-      title: "Redirected to",
-      message: newUrl
-    })
+      chrome.notifications.create({
+          type   : "basic",
+          iconUrl: "assets/icon.png",
+          title  : "Redirected to",
+          message: targetUrl
+      });
   }
 }
 
-/**
- * Met à jour les menus contextuels :
- * - Sur la page : activable/désactivable via options (enabled)
- * - Sur l'icône : toujours visible, non désactivable
- */
-async function updateContextMenus(enabled) {
-  await chrome.contextMenus.removeAll()
+/*************************  Context‑menu builder  ****************************/
 
-  // Menu contextuel sur la page (activable/désactivable)
-  if (enabled) {
-    chrome.contextMenus.create({
-      id: "move-up-page",
-      title: "Move up",
-      contexts: ["page"]
-    })
-    chrome.contextMenus.create({
-      id: "go-root-page",
-      title: "Go to root",
-      contexts: ["page"]
-    })
-  }
+async function rebuildContextMenus (includePageMenu) {
+  // Clear existing menus --------------------------------------------------
+  await chrome.contextMenus.removeAll();
 
-  // Menu contextuel sur l'icône (toujours visible)
+  // Context types where menus will appear
+  const contexts = includePageMenu ? ["action", "page"] : ["action"];
+
+  // ---------------------------------------------------------------------
+  // Fixed primary actions (one‑shot, do NOT change stored default mode)
+  // ---------------------------------------------------------------------
   chrome.contextMenus.create({
-    id: "move-up-action",
-    title: "Move up",
-    contexts: ["action"]
-  })
+      id      : "once-standard",
+      title   : "Move up - standard",
+      contexts
+  });
+
   chrome.contextMenus.create({
-    id: "go-root-action",
-    title: "Go to root",
-    contexts: ["action"]
-  })
+      id      : "once-root",
+      title   : "Go to root",
+      contexts
+  });
+
+  chrome.contextMenus.create({
+      id      : "once-param",
+      title   : "Move up - remove last param",
+      contexts
+  });
+
+  chrome.contextMenus.create({
+      id      : "once-slash",
+      title   : "Move up - keep params/hash",
+      contexts
+  });
+
+  // ---------------------------------------------------------------------
+  // Separator before dynamic list / submenu
+  // ---------------------------------------------------------------------
+  chrome.contextMenus.create({
+      id      : "sep-dynamic",
+      type    : "separator",
+      contexts
+  });
+
+  // ---------------------------------------------------------------------
+  // Dynamic jump list – grouped in ACTION menu, flat in PAGE menu
+  // ---------------------------------------------------------------------
+  const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  menuUrlMap.clear();
+
+  if (!activeTab?.url) return;
+
+  // Parent submenu for ACTION menu only
+  const parentActionId = "navigate-up";
+  chrome.contextMenus.create({
+      id      : parentActionId,
+      title   : "Navigate up",
+      contexts: ["action"]
+  });
+
+  const candidates = buildCandidateList(activeTab.url);
+  candidates.forEach((url, index) => {
+      const parsed = new URL(url);
+
+      // ---------------- ACTION MENU (submenu) ----------------
+      const actionItemId = `jump-action-${index}`;
+      menuUrlMap.set(actionItemId, url);
+      chrome.contextMenus.create({
+          id       : actionItemId,
+          parentId : parentActionId,
+          title    : `${parsed.hostname}${parsed.pathname}`,
+          contexts : ["action"]
+      });
+
+      // ---------------- PAGE MENU (flat list) ----------------
+      if (includePageMenu) {
+          const pageItemId = `jump-page-${index}`;
+          menuUrlMap.set(pageItemId, url);
+          chrome.contextMenus.create({
+              id      : pageItemId,
+              title   : `${parsed.hostname}${parsed.pathname}`,
+              contexts: ["page"]
+          });
+      }
+  });
 }
 
-/**
- * Initialisation à l'installation :
- * - Désactive notification et menu contextuel page par défaut
- * - Met à jour les menus contextuels
- */
+/******************************  Listeners  *****************************/
+
+// First‑time installation → default settings
 chrome.runtime.onInstalled.addListener(async () => {
   await chrome.storage.local.set({
-    toast: false,
-    contextMenu: false
-  })
-  await updateContextMenus(false)
-})
+      mode        : "standard",  // default navigation mode
+      toast       : false,        // notifications disabled by default
+      contextMenu : false,        // page context‑menu disabled by default
+      shortcut    : true          // keyboard shortcut enabled
+  });
 
-/**
- * Synchronisation dynamique du menu contextuel page avec les options
- */
-chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === "local" && changes["contextMenu"]) {
-    updateContextMenus(changes["contextMenu"].newValue)
+  await rebuildContextMenus(false);
+});
+
+// Option toggles stored in chrome.storage.local
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName === "local" && changes["contextMenu"]) {
+      rebuildContextMenus(changes["contextMenu"].newValue);
   }
-})
+});
 
-// Action directe sur clic sur l'icône
-chrome.action.onClicked.addListener(() => moveUp())
+// Keep dynamic list fresh when active tab changes
+chrome.tabs.onActivated.addListener(async () => {
+  const { contextMenu = false } = await chrome.storage.local.get("contextMenu");
+  rebuildContextMenus(contextMenu);
+});
 
-/**
- * Raccourci clavier : activable/désactivable via option "shortcut"
- */
-chrome.commands.onCommand.addListener(async (cmd) => {
-  if (cmd === "move-up") {
-    const { shortcut = true } = await chrome.storage.local.get("shortcut")
-    if (shortcut) moveUp()
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  if (tab.active && changeInfo.url) {
+      const { contextMenu = false } = await chrome.storage.local.get("contextMenu");
+      rebuildContextMenus(contextMenu);
   }
-})
+});
 
-/**
- * Gestion des clics sur les menus contextuels
- */
+// Icon click → perform move‑up with stored default mode
+chrome.action.onClicked.addListener(() => performMoveUp());
+
+// Keyboard shortcut (if enabled)
+chrome.commands.onCommand.addListener(async (command) => {
+  if (command === "move-up") {
+      const { shortcut = true } = await chrome.storage.local.get("shortcut");
+      if (shortcut) {
+          performMoveUp();
+      }
+  }
+});
+
+// Context‑menu click handling ------------------------------------------------
 chrome.contextMenus.onClicked.addListener((info) => {
-  if (
-    info.menuItemId === "move-up-page" ||
-    info.menuItemId === "move-up-action"
-  ) {
-    moveUp()
-  } else if (
-    info.menuItemId === "go-root-page" ||
-    info.menuItemId === "go-root-action"
-  ) {
-    moveUp("root")
+  // One‑shot primary actions
+  if (info.menuItemId === "once-standard") {
+      performMoveUp("standard");
+      return;
   }
-})
+  if (info.menuItemId === "once-root") {
+      performMoveUp("root");
+      return;
+  }
+  if (info.menuItemId === "once-param") {
+      performMoveUp("param");
+      return;
+  }
+  if (info.menuItemId === "once-slash") {
+      performMoveUp("slash-keep");
+      return;
+  }
+
+  // Dynamic jump list entries
+  if (menuUrlMap.has(info.menuItemId)) {
+      const target = menuUrlMap.get(info.menuItemId);
+      chrome.tabs.update(info.tabId, { url: target });
+  }
+});
