@@ -57,42 +57,11 @@ A modern, smart Chrome extension to "move up" one level in the current tab's URL
 
 ## 📁 File Structure
 
-```
-move-on-up/
-├── .gitignore
-├── README.md
-├── manifest.json
-├── background.js
-├── content.js
-├── assets/
-│   └── icon.png
-└── options/
-    ├── options.html
-    ├── options.js
-    └── options.css
-```
-
 - **manifest.json**: Extension config, permissions, background, options, commands, icons.
 - **background.js**: All navigation, notification, context menu, and shortcut logic.
 - **content.js**: (Currently empty, ready for future enhancements.)
 - **options/**: Options page UI and logic.
 - **assets/**: Extension icon (required: `icon.png` 128x128 or scalable).
-
----
-
-## ⚙️ Installation (Development)
-
-1. Clone the repo:
-   ```sh
-   git clone https://github.com/onlybets/move-on-up.git
-   cd move-on-up
-   ```
-2. Add your icon:  
-   Place `icon.png` (128x128 or scalable) in the `assets/` directory.
-3. Load the extension in Chrome:
-   - Go to `chrome://extensions`
-   - Enable "Developer mode"
-   - Click "Load unpacked" and select the `move-on-up` directory
 
 ---
 
