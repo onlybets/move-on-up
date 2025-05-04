@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Move On Up",
-  "version": "1.0.0",
-  "description": "Move up in the URL with smart navigation, context menu, notifications, and keyboard shortcut.",
+  "version": "1.1.0",
+  "description": "Quickly go up one level in any URL. Click the icon or use a shortcut. Smart modes, context menu, and instant customization. 🚀",
   "icons": {
     "16": "assets/icon.png",
     "32": "assets/icon.png",
@@ -13,20 +13,12 @@
     "tabs",
     "storage",
     "contextMenus",
-    "notifications",
-    "activeTab"
+    "notifications"
   ],
   "background": {
     "service_worker": "background.js"
   },
-  "action": {
-    "default_icon": {
-      "16": "assets/icon.png",
-      "32": "assets/icon.png",
-      "48": "assets/icon.png",
-      "128": "assets/icon.png"
-    }
-  },
+  "action": { "default_icon": "assets/icon.png" },
   "options_ui": {
     "page": "options/options.html",
     "open_in_tab": false
@@ -39,15 +31,5 @@
       },
       "description": "Move up in the URL path"
     }
-  },
-  "content_scripts": [
-    {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"]
-    }
-  ],
-  "host_permissions": [
-    "https://*/*",
-    "http://*/*"
-  ]
+  }
 }
