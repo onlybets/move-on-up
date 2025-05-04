@@ -154,4 +154,4 @@ Design and logic inspired by user needs for fast, smart URL navigation.
 
 ## 📷 Screenshots
 
-*(Add screenshots of the extension in action and the options page here!)*
+

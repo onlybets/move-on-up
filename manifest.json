@@ -34,8 +34,8 @@
   "commands": {
     "move-up": {
       "suggested_key": {
-        "default": "Ctrl+Shift+ArrowUp",
-        "mac": "Command+Shift+ArrowUp"
+        "default": "Ctrl+Shift+U",
+        "mac": "Command+Shift+U"
       },
       "description": "Move up one level in the URL"
     }
