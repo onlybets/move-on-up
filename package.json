@@ -1,0 +1,60 @@
+{
+  "name": "move-on-up",
+  "displayName": "Move on up",
+  "version": "0.0.1",
+  "description": "Move up in the url",
+  "author": "David Demri",
+  "scripts": {
+    "dev": "plasmo dev",
+    "build": "plasmo build",
+    "package": "plasmo package"
+  },
+  "dependencies": {
+    "@plasmohq/storage": "^1.15.0",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
+  },
+  "devDependencies": {
+    "@ianvs/prettier-plugin-sort-imports": "4.1.1",
+    "@tailwindcss/postcss": "^4.1.5",
+    "@types/chrome": "0.0.258",
+    "@types/node": "20.11.5",
+    "@types/react": "18.2.48",
+    "@types/react-dom": "18.2.18",
+    "autoprefixer": "^10.4.21",
+    "jiti": "^2.4.2",
+    "module": "^1.2.5",
+    "node-polyfill": "^1.0.0",
+    "plasmo": "0.90.3",
+    "postcss": "^8.5.3",
+    "prettier": "3.2.4",
+    "tailwindcss": "^4.1.5",
+    "typescript": "5.3.3"
+  },
+  "manifest": {
+    "host_permissions": [
+      "https://*/*"
+    ],
+    "permissions": [
+      "tabs",
+      "commands",
+      "contextMenus",
+      "storage",
+      "notifications",
+      "activeTab"
+    ],
+    "commands": {
+      "move-up": {
+        "suggested_key": {
+          "default": "Ctrl+Shift+ArrowUp",
+          "mac": "Command+Shift+ArrowUp"
+        },
+        "description": "Move up one level"
+      }
+    },
+    "options_ui": {
+      "page": "options.html",
+      "open_in_tab": false
+    }
+  }
+}

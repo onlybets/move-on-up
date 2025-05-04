@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Move On Up – Options</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>Move On Up – Options</h1>
+    <form id="options-form">
+      <fieldset>
+        <legend>Navigation Mode</legend>
+        <label>
+          <input type="radio" name="mode" value="standard" /> Standard (remove one path level, clear params/hash)
+        </label><br />
+        <label>
+          <input type="radio" name="mode" value="root" /> Go to root
+        </label><br />
+        <label>
+          <input type="radio" name="mode" value="param" /> Param mode (remove one URL param at a time)
+        </label><br />
+        <label>
+          <input type="radio" name="mode" value="slash-keep" /> Keep params/hash, only move up path
+        </label>
+      </fieldset>
+      <div class="options-checkboxes">
+        <label>
+          <input type="checkbox" id="toast" /> Show notification (toast) after redirect
+        </label>
+        <label>
+          <input type="checkbox" id="contextMenu" /> Enable right-click context menu
+        </label>
+      </div>
+    </form>
+    <section class="shortcut-info">
+      <h2>Keyboard Shortcut</h2>
+      <p>
+        <span class="kbd">Ctrl+Shift+ArrowUp</span> (Windows/Linux) or
+        <span class="kbd">Cmd+Shift+ArrowUp</span> (Mac)
+      </p>
+      <p class="info">
+        You can change this shortcut in your browser’s extension shortcuts settings.<br />
+        <a href="chrome://extensions/shortcuts" target="_blank">Open shortcut settings</a>
+      </p>
+    </section>
+    <footer>
+      <small>All options and UI are in English.<br />Extension by David Demri.</small>
+    </footer>
+  </main>
+  <script src="options.js"></script>
+</body>
+</html>

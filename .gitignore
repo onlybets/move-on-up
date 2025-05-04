@@ -1,0 +1,31 @@
+# Node modules (if ever present)
+node_modules/
+
+# Build output
+dist/
+build/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# VSCode settings
+.vscode/
+
+# Mac system files
+Icon?
+
+# Environment files
+.env
+.env.*
+
+# Misc
+*.local
+*.log
+*.tmp
+*.swp

@@ -1,0 +1,53 @@
+{
+  "manifest_version": 3,
+  "name": "Move On Up",
+  "version": "1.0.0",
+  "description": "Move up in the URL with smart navigation, context menu, notifications, and keyboard shortcut.",
+  "icons": {
+    "16": "assets/icon.png",
+    "32": "assets/icon.png",
+    "48": "assets/icon.png",
+    "128": "assets/icon.png"
+  },
+  "permissions": [
+    "tabs",
+    "storage",
+    "contextMenus",
+    "notifications",
+    "activeTab"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_icon": {
+      "16": "assets/icon.png",
+      "32": "assets/icon.png",
+      "48": "assets/icon.png",
+      "128": "assets/icon.png"
+    }
+  },
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": false
+  },
+  "commands": {
+    "move-up": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+ArrowUp",
+        "mac": "Command+Shift+ArrowUp"
+      },
+      "description": "Move up one level in the URL"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ],
+  "host_permissions": [
+    "https://*/*",
+    "http://*/*"
+  ]
+}
