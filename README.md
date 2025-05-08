@@ -1,6 +1,6 @@
 # Move On Up
 
-A modern, smart Chrome extension to "move up" one level in the current tab's URL, with advanced navigation modes, customizable user experience, and a clean, accessible options interface.
+A modern, smart Chrome & [Firefox](https://addons.mozilla.org/firefox/addon/move-on-up/) extension to "move up" one level in the current tab's URL, with advanced navigation modes, customizable user experience, and a clean, accessible options interface.
 
 ---
 
